@@ -1,3 +1,7 @@
+Instale: pip install psutil
+
+Após esse processo, pode seguir com o código abaixo: 
+
 import psutil
 import time
 
