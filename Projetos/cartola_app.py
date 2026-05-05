@@ -13,6 +13,8 @@
   IMPORTANTE: Este script usa endpoints PÚBLICOS da API do
   Cartola FC (sem autenticação). Endpoints que exigem login
   (seu time pessoal, ligas privadas) não estão incluídos.
+
+  OBS: não gera uma escalação exata para a rodada, seria mais uma ajuda para você ter uma ideia de qual jogador eexato, para escalar o seu time. 
 =============================================================
 """
 
