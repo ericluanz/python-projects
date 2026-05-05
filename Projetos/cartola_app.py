@@ -2,7 +2,6 @@
 =============================================================
   CARTOLA FC - APP DE TERMINAL
 =============================================================
-  Autor: Eric (com Claude)
   Descrição: Aplicativo de linha de comando que consome a
   API do Cartola FC para análise de mercado, sugestão de
   escalação e acompanhamento de parciais.
@@ -28,13 +27,11 @@ from typing import Optional
 
 API_BASE = "https://api.cartolafc.globo.com"
 
-# Headers ajudam a evitar bloqueios e simulam um navegador comum
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (CartolaApp/1.0 - estudo educacional)",
     "Accept": "application/json",
 }
 
-# Mapeamento de IDs de posição da API → nome legível
 POSICOES = {
     1: "Goleiro",
     2: "Lateral",
@@ -44,7 +41,6 @@ POSICOES = {
     6: "Técnico",
 }
 
-# Status do mercado
 STATUS_MERCADO = {
     1: "ABERTO ✅",
     2: "FECHADO 🔒",
@@ -53,7 +49,6 @@ STATUS_MERCADO = {
     6: "ENCERRADO 🏁",
 }
 
-# Status do atleta (provável, dúvida, suspenso, etc)
 STATUS_ATLETA = {
     2: "Dúvida",
     3: "Suspenso",
@@ -80,7 +75,7 @@ def fazer_requisicao(endpoint: str) -> Optional[dict]:
     url = f"{API_BASE}{endpoint}"
     try:
         resposta = requests.get(url, headers=HEADERS, timeout=15)
-        resposta.raise_for_status()  # levanta erro se status >= 400
+        resposta.raise_for_status()  
         return resposta.json()
     except requests.exceptions.Timeout:
         print(f"⚠️  Timeout ao acessar {endpoint}")
@@ -170,7 +165,6 @@ def filtrar_atletas(dados: dict, posicao_id: Optional[int] = None,
             continue
         filtrados.append(at)
 
-    # Ordena pela média de pontos (maior primeiro)
     filtrados.sort(key=lambda x: x.get("media_num", 0), reverse=True)
     return filtrados
 
@@ -279,7 +273,7 @@ def sugerir_escalacao():
         return
 
     clubes = dados.get("clubes", {})
-    # Só consideramos jogadores prováveis e com média > 0
+  
     provaveis = [a for a in dados.get("atletas", [])
                  if a.get("status_id") == 7 and a.get("media_num", 0) > 0]
 
@@ -289,75 +283,73 @@ def sugerir_escalacao():
 
     formacao = ESQUEMAS[esquema]
     necessarios = {
-        1: 1,                        # 1 goleiro
-        2: formacao["lat"],          # laterais
-        3: formacao["zag"],          # zagueiros
-        4: formacao["mei"],          # meias
-        5: formacao["ata"],          # atacantes
-        6: 1,                        # 1 técnico
+        1: 1,                        
+        2: formacao["lat"],          
+        3: formacao["zag"],          
+        4: formacao["mei"],         
+        5: formacao["ata"],         
+        6: 1,                        
     }
 
-    # Pega um pool 3x maior do que precisa pra ter folga na otimização
+    
     pool = {}
     for pos_id, qtd in necessarios.items():
         if qtd > 0:
             pool[pos_id] = selecionar_melhores_por_posicao(provaveis, pos_id, qtd * 3)
 
-    # Estratégia gulosa: pega os melhores; se estourar, troca pelo mais barato
+
     escalacao = {}
     for pos_id, qtd in necessarios.items():
         if qtd == 0:
             continue
         escalacao[pos_id] = pool[pos_id][:qtd]
 
-    # Calcula custo
+
     def custo_total(esc):
         return sum(at.get("preco_num", 0)
                    for lista in esc.values() for at in lista)
 
     custo = custo_total(escalacao)
 
-    # Se estourou, troca os mais caros por opções mais baratas (e ainda boas)
+    
     tentativas = 0
     while custo > orcamento and tentativas < 30:
-        # Acha o jogador "mais caro vs custo-benefício" pra trocar
+       
         pior = None
         pior_pos = None
         pior_idx = None
         pior_cb = float("inf")
         for pos_id, lista in escalacao.items():
             for idx, at in enumerate(lista):
-                # custo-benefício: preço por unidade de média
+                
                 preco = at.get("preco_num", 0.01)
                 media = at.get("media_num", 0.01)
-                cb = preco / max(media, 0.01)  # quanto menor, melhor
-                # queremos trocar quem tem PIOR custo-benefício (cb mais alto)
-                # então invertemos: marcamos o de maior cb
+                cb = preco / max(media, 0.01)  
+               
                 if cb > -pior_cb:
                     pior_cb = -cb
                     pior = at
                     pior_pos = pos_id
                     pior_idx = idx
-
-        # Tenta substituir por alguém mais barato no pool
+                  
         atual_id = pior.get("atleta_id")
         em_uso = {a.get("atleta_id") for lst in escalacao.values() for a in lst}
         substitutos = [a for a in pool[pior_pos]
                        if a.get("atleta_id") not in em_uso
                        and a.get("preco_num", 0) < pior.get("preco_num", 0)]
         if not substitutos:
-            break  # não dá pra otimizar mais
+            break  
         substitutos.sort(key=lambda x: x.get("media_num", 0), reverse=True)
         escalacao[pior_pos][pior_idx] = substitutos[0]
         custo = custo_total(escalacao)
         tentativas += 1
 
-    # === Apresenta o resultado ===
+
     print(f"\n  📋 Escalação sugerida ({esquema})")
     print("  " + "─" * 60)
 
     media_total = 0
-    for pos_id in [1, 3, 2, 4, 5, 6]:  # ordem visual: GOL, ZAG, LAT, MEI, ATA, TEC
+    for pos_id in [1, 3, 2, 4, 5, 6]:  
         if pos_id not in escalacao:
             continue
         for at in escalacao[pos_id]:
@@ -387,7 +379,7 @@ def ver_parciais():
     print("\n🔴 PARCIAIS AO VIVO")
     print("=" * 50)
 
-    # Primeiro, confirma se o mercado está fechado (rodada em andamento)
+  
     status = fazer_requisicao("/mercado/status")
     if status and status.get("status_mercado") != 2:
         print("  ℹ️  Mercado não está fechado. Parciais só ficam disponíveis")
@@ -405,7 +397,7 @@ def ver_parciais():
         print("  Nenhum atleta pontuou ainda.")
         return
 
-    # Converte dict em lista e ordena por pontuação
+   
     lista = []
     for atleta_id, info in atletas.items():
         info["atleta_id"] = atleta_id
