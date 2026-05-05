@@ -37,23 +37,3 @@ cd scripts-infra
 Instale as dependências necessárias:  
 pip install psutil  
 Execute o script desejado  
-
-## ⚠️ Observação: execute conforme sua necessidade e ajuste as configurações no início de cada script.  
-
-## 📋 Pré-requisitos  
-Python 3.8+  
-Sistema Windows ou Linux  
-Biblioteca psutil (para scripts de sistema)  
-
-## ⚠️ Aviso
-Este repositório contém scripts de automação e diagnóstico.  
-
-✔️ Utilize apenas em ambientes autorizados  
-✔️ Teste antes de executar em produção  
-✔️ Ajuste os parâmetros conforme seu ambiente  
-
-## 🛠️ Boas práticas
-✔️ Mantenha backups antes de automações críticas  
-✔️ Use o modo simulação quando disponível  
-✔️ Revise permissões de execução  
-✔️ Evite executar scripts em produção sem validação  
